@@ -7,5 +7,5 @@ int main() {
     pucks.Initialize();
     pucks.debugPrint();
     pucks.movePucksToSpots();
-    pucks.printPucks();
+    pucks.start();
 }
