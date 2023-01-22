@@ -6,8 +6,8 @@
 
 
 /*
-    TODO:
-        - Move implementation out of the header file.
+    Most of the algorithms in this file use the assumption that for a queue to move forward, the person in front must move first, then the person behind them, etc.
+    These algorithms use the same assumption to move pucks forward, that the puck in front must first move, followed by the one behind it, etc.
 */
 
 
@@ -15,7 +15,7 @@
 #define distFormula(x1, y1, x2, y2) (sqrt(pow(x2-x1, 2)) + sqrt(pow(y2-y1, 2)))
 
 
-// Chose to make a location object to hold x and y values instead of using tuples.
+// Chose to make a location object to hold x and y values instead of using tuples, used only for the parkingSpot array.
 class Location {
     public:
         int x;
@@ -42,10 +42,13 @@ class Puck {
         int x;
         int y;
 
-        /* The intention with this spot variable is to store a puck's current parking spot.
-           I will use the corresponding index of the parkingSpot vector to indicate which parking spot the puck is in.
-           -1 means that the puck hasn't yet been moved to a parking spot.
-           Starts at 0, goes up to 8 */
+        /*
+            The intention with this spot variable is to store a puck's current parking spot for its initialization.
+            I will use the corresponding index of the parkingSpot vector to indicate which parking spot the puck is in.
+            -1 means that the puck hasn't yet been moved to a parking spot.
+            Starts at 0, goes up to 8 
+            Is not used in favor of the track array once initialization is finished.
+        */
         int spot = -1;
         
         Puck(int id) {
@@ -97,7 +100,8 @@ class PuckLibrary {
         int numSpots = 9;
 
         // Holds order of the pucks, as they sit on the track. Initialized to -1, so we know when a spot is empty.
-        int arr[9] = {-1, -1, -1, -1, -1, -1, -1, -1, -1};
+        // There are 10 positions because the 10th position is a holding spot for when the pucks are moving back to the start of the track.
+        int track[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
         
 
         PuckLibrary() {}
@@ -111,34 +115,73 @@ class PuckLibrary {
             pucks[puckNumber].hasWorked = true;
         }
 
+        /*
+            Returns the current parking spot of any given puck.
+            O(n) time complexity.
+        */
+        int getPuckSpot(int puckNumber) {
+            for(int i = 0; i < 10; i++) {
+                if(track[i] == puckNumber) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
         
         /*
-            ELABORATE FURTHER -------------------------
-            This function either moves the pucks as far forward as possible or to the ending/starting locations.
-            Will return a false if more work needs to be done, or true if all work is finished.
+            This function will move pucks, make them work, and reset them if they are done working.
+            It will return false if there is more work to be done, and true if all pucks have finished working.
+            O(n) time complexity.
         */
         bool Move(int puckNumber) {
 
-            if (pucks[puckNumber].spot == numSpots) { // Puck is at the end, start working. Then, move the puck out of the parking spots.
-                pucks[puckNumber].spot = -1;
-                Work(puckNumber);
+            if(puckNumber == -1) {
+                // Move may be called upon spots in the track which don't currently have a puck in them.
+                return false;
+            }
 
-            } else if (pucks[puckNumber].spot == -1) { // Puck has finished working, move it back to the beginning.
-                pucks[puckNumber].spot = 1;
+            if (track[8] == puckNumber) {
+                // Puck is at the end, move it off the track, check if all pucks are finished, then start working if not.
+                track[8] = -1;
+                track[9] = puckNumber;
 
-            } else { // Move the puck as far forward as it will go without hitting another puck.
                 // Since all pucks must traverse the spots and work in single file, if the puck at the front has finished working, then all of them must have.
                 if(pucks[puckNumber].hasWorked == true) {
                     std::cout << "All pucks have finished working." << std::endl;
                     return true;
                 }
 
-                for(int i = pucks[puckNumber].spot+1; i < numSpots; i++) {
-                    if(isSpotTaken(i) == true) {
+                Work(puckNumber);
+                printPucks();
+
+            } else if (track[9] == puckNumber) {
+                // Puck has finished working, move it back to the beginning.
+                std::cout << "Puck " << puckNumber << " has been moved to the start." << std::endl;
+
+                track[0] = puckNumber;
+                track[9] = -1;
+                printPucks();
+                // This puck must be moved once more to free space for the next working puck.
+                Move(puckNumber);
+                printPucks();
+
+            } else {
+                // Puck is somewhere in the middle of the track, move it as far forward as it will go without hitting another puck.
+                for(int i = getPuckSpot(puckNumber)+1; i <= numSpots; i++) {
+                    // Start searching for its next spot right in front of its current location
+
+                    if(track[i] != -1 || i == 9) {
+                        // If the spot in question is filled, or past the end, the correct spot for this puck is the previous one.
+                        track[getPuckSpot(puckNumber)] = -1;
                         std::cout << "Moving puck " << puckNumber << " to (" << parkingSpots[i-1].x << ", " << parkingSpots[i-1].y << ")" << std::endl;
-                        pucks[puckNumber].spot = i-1;
+                        track[i-1] = puckNumber;
+                        return false;
                     }
+
                 }
+
+                printPucks();
             }
             return false;
         }
@@ -146,21 +189,59 @@ class PuckLibrary {
 
         /*
             Used to find if a parking spot is already occupied.
+            O(1) time complexity.
         */
         bool isSpotTaken(int spotIndex) {
-            for(int i = 0; i < numPucks; i++) {
-                if(pucks[i].spot == spotIndex) {
-                    return true;
-                }
+            if(track[spotIndex] != -1) {
+                return true;
             }
             return false;
         }
 
 
         /*
+            This function serves to close all gaps in the track.
+            It does this by moving the first puck as far forward as possible, then the one behind it, etc. Until the end of the track.
+            O(n^2) time complexity.
+        */
+        void closeGaps() {
+
+            // The general algorithm here is to move from the front of the queue backwards, selecting a puck, then move forward to find the furthest the puck can go before colliding with another or the end.
+            for (int i = 7; i >= 0; i--) {
+
+                // If the spot is empty, we can ignore it, because there is no puck to move forward there.
+                if(track[i] == -1) {
+                    continue;
+                }
+
+                // We have found a puck. Now we will move forwards through the track, finding the furthest forward position to move the puck to without crossing another puck or going past the end of the track.
+                for(int f = i+1; f <= 9; f++) {
+
+                    if(track[i+1] != -1) {
+                        break;
+                    }
+
+                    // If the spot isnt empty, then we can move the puck right up behind that spot
+                    // Or if we reached the end without hitting another puck, we move there
+                    if(track[f] != -1 || f == 9) {
+
+                        // Swap locations then move to the next puck.
+                        track[f-1] = track[i];
+                        track[i] = -1;
+                        break;
+                    }
+                
+                }
+            }
+            std::cout << "Positions now that gaps are closed: " << std::endl;
+            printPucks();
+        }
+
+
+        /*
             This function is only intended to be called once, after the pucks are initialized with their random position values.
             It will iterate through the pucks[] array and use the distance formula to find the closest parking spot for each puck in order, while avoiding parking spots already taken.
-            This is accomplished in O(n^2) time complexity.
+            O(n^2) time complexity.
         */
         void movePucksToSpots() {
 
@@ -179,17 +260,17 @@ class PuckLibrary {
 
                     if (currDist < minDistToPoint && !isSpotTaken(spotIndex)) {
                         minDistToPoint = currDist;
-                        //std::cout << "DEBUG: New min found for puck " << puckIndex << ", dist: " << minDistToPoint << ", spotindex: " << spotIndex << std::endl;
                         pucks[puckIndex].setSpot(spotIndex);
                     }
 
                 }
-                std::cout << "DEBUG: Final closest location for puck " << puckIndex << " is spot " << pucks[puckIndex].getSpot() << 
-                                " at location " << parkingSpots[pucks[puckIndex].getSpot()].x << ", " << parkingSpots[pucks[puckIndex].getSpot()].y << std::endl;
                 
                 // Need to know the ordering of the pucks for printing purposes.
-                arr[pucks[puckIndex].getSpot()] = puckIndex;
+                track[pucks[puckIndex].getSpot()] = puckIndex;
             }
+
+            std::cout << "Position once pucks are moved to starting locations: " << std::endl;
+            printPucks();
         }
 
 
@@ -213,19 +294,12 @@ class PuckLibrary {
                 newPuck.x = xPosition;
                 newPuck.y = yPosition;
 
+                std::cout << "Puck " << i << " initialized at position (" << newPuck.x << ", " << newPuck.y << ")" << std::endl;
+
                 pucks.push_back(newPuck);
             }
             numPucks = randSize;
 
-        }
-
-        /*
-            Prints all puck's location and id for debugging purposes.
-        */
-        void debugPrint() {
-            for (int i = 0; i < numPucks; i++) {
-                std::cout << "DEBUG: Puck " << i << ": x " << pucks[i].x << " y " << pucks[i].y << std::endl;
-            }
         }
 
 
@@ -234,34 +308,34 @@ class PuckLibrary {
         */
         void printPucks() {
 
-            // This array will store the puck[] array indeces sorted by their spot positions for easier printing.
-            int arr[maxPucks];
-
-            
-
             std::cout << "START ->";
             for (int i = 0; i < maxPucks; i++) {
-                if (arr[i] == -1) {
+                if (track[i] == -1) {
                     std::cout << " EMPTY ->";
                     continue;
                 }
 
-                std::cout << " FILLED (Puck: " << pucks[arr[i]].getId() << ") ->";
+                std::cout << " FILLED (Puck: " << pucks[track[i]].getId() << ") ->";
             }
             
-            std::cout << " END" << std::endl;
+            std::cout << " END" << std::endl << std::endl;
 
         }
 
+
+        /*
+            This function starts the process of moving the pucks and making them work, and will automatically exit when they are all finished.
+        */
         void start() {
-            int limit = 0;
-            while(limit < 20) {
-                for(int i = numPucks-1; i >= 0; i--) {
-                    if(Move(i)) {
+            // Will loop until all pucks are finished.
+            while(true) {
+                // Pucks are moved from the front to the back.
+                for(int i = 9; i >= 0; i--) {
+                    // Call move, if it returns true, all pucks have finished working.
+                    if(Move(track[i])) {
                         return;
                     }
                 }
-                limit++;
             }
         }
 
