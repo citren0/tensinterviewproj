@@ -111,7 +111,7 @@ class PuckLibrary {
             Asynchronous work function, called when pucks reach the end of the track.
         */
         void Work(int puckNumber) {
-            std::cout << "Puck " << puckNumber << " working...\n";
+            std::cout << "Puck " << puckNumber << " working...\n\n";
             pucks[puckNumber].hasWorked = true;
         }
 
@@ -148,7 +148,7 @@ class PuckLibrary {
 
                 // Since all pucks must traverse the spots and work in single file, if the puck at the front has finished working, then all of them must have.
                 if(pucks[puckNumber].hasWorked == true) {
-                    std::cout << "All pucks have finished working." << std::endl;
+                    std::cout << "All pucks have finished working.\n";
                     return true;
                 }
 
@@ -157,7 +157,7 @@ class PuckLibrary {
 
             } else if (track[9] == puckNumber) {
                 // Puck has finished working, move it back to the beginning.
-                std::cout << "Puck " << puckNumber << " has been moved to the start." << std::endl;
+                std::cout << "\nPuck " << puckNumber << " has been moved to the start.\n";
 
                 track[0] = puckNumber;
                 track[9] = -1;
@@ -174,7 +174,7 @@ class PuckLibrary {
                     if(track[i] != -1 || i == 9) {
                         // If the spot in question is filled, or past the end, the correct spot for this puck is the previous one.
                         track[getPuckSpot(puckNumber)] = -1;
-                        std::cout << "Moving puck " << puckNumber << " to (" << parkingSpots[i-1].x << ", " << parkingSpots[i-1].y << ")" << std::endl;
+                        std::cout << "Moving puck " << puckNumber << " to (" << parkingSpots[i-1].x << ", " << parkingSpots[i-1].y << ")\n";
                         track[i-1] = puckNumber;
                         return false;
                     }
@@ -233,7 +233,7 @@ class PuckLibrary {
                 
                 }
             }
-            std::cout << "Positions now that gaps are closed: " << std::endl;
+            std::cout << "Positions now that gaps are closed: \n";
             printPucks();
         }
 
@@ -269,7 +269,7 @@ class PuckLibrary {
                 track[pucks[puckIndex].getSpot()] = puckIndex;
             }
 
-            std::cout << "Position once pucks are moved to starting locations: " << std::endl;
+            std::cout << "\nPosition once pucks are moved to starting locations: \n";
             printPucks();
         }
 
@@ -294,7 +294,7 @@ class PuckLibrary {
                 newPuck.x = xPosition;
                 newPuck.y = yPosition;
 
-                std::cout << "Puck " << i << " initialized at position (" << newPuck.x << ", " << newPuck.y << ")" << std::endl;
+                std::cout << "Puck " << i << " initialized at position (" << newPuck.x << ", " << newPuck.y << ")\n";
 
                 pucks.push_back(newPuck);
             }
@@ -318,7 +318,7 @@ class PuckLibrary {
                 std::cout << " FILLED (Puck: " << pucks[track[i]].getId() << ") ->";
             }
             
-            std::cout << " END" << std::endl << std::endl;
+            std::cout << " END\n\n";
 
         }
 
