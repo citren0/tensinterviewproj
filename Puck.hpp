@@ -12,7 +12,7 @@
 
 
 // The geometric distance formula, put into a macro for easy use.
-#define distFormula(x1, y1, x2, y2) (sqrt(pow(x2-x1, 2)) + sqrt(pow(y2-y1, 2)))
+#define distFormula(x1, y1, x2, y2) sqrt(pow(x2-x1, 2) + pow(y2-y1, 2))
 
 
 // Chose to make a location object to hold x and y values instead of using tuples, used only for the parkingSpot array.

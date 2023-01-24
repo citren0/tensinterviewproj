@@ -7,25 +7,57 @@
 
 
 /*
+    Initializes a random number, 1-9, of pucks, then gives them all random locations on the map.
+*/
+void PuckLibrary::Initialize() {
+
+    srand(time(NULL));
+
+    // This will be the number of pucks generated
+    int randSize = rand() % maxPucks + 1;
+
+    for (int i = 0; i < randSize; i++) {
+
+        // Generate a new puck with id = i and random positions between 0-480
+        Puck newPuck(i);
+
+        int xPosition = rand() % 480;
+        int yPosition = rand() % 480;
+        newPuck.x = xPosition;
+        newPuck.y = yPosition;
+
+        std::cout << "Puck " << i << " initialized at position (" << newPuck.x << ", " << newPuck.y << ")\n";
+
+        pucks.push_back(newPuck);
+    }
+    numPucks = randSize;
+
+}
+
+
+/*
+    This function starts the process of moving the pucks and making them work, and will automatically exit when they are all finished.
+*/
+void PuckLibrary::start() {
+    // Will loop until all pucks are finished.
+    while(true) {
+        // Pucks are moved from the front to the back.
+        for(int i = 9; i >= 0; i--) {
+            // Call move, if it returns true, all pucks have finished working.
+            if(Move(track[i])) {
+                return;
+            }
+        }
+    }
+}
+
+
+/*
     Asynchronous work function, called when pucks reach the end of the track.
 */
 void PuckLibrary::Work(int puckNumber) {
     std::cout << "Puck " << puckNumber << " working...\n\n";
     pucks[puckNumber].hasWorked = true;
-}
-
-
-/*
-    Returns the current parking spot of any given puck.
-    O(n) time complexity.
-*/
-int PuckLibrary::getPuckSpot(int puckNumber) {
-    for(int i = 0; i < 10; i++) {
-        if(track[i] == puckNumber) {
-            return i;
-        }
-    }
-    return -1;
 }
 
 
@@ -82,18 +114,6 @@ bool PuckLibrary::Move(int puckNumber) {
         }
 
         printPucks();
-    }
-    return false;
-}
-
-
-/*
-    Used to find if a parking spot is already occupied.
-    O(1) time complexity.
-*/
-bool PuckLibrary::isSpotTaken(int spotIndex) {
-    if(track[spotIndex] != -1) {
-        return true;
     }
     return false;
 }
@@ -175,35 +195,6 @@ void PuckLibrary::movePucksToSpots() {
 
 
 /*
-    Initializes a random number, 1-9, of pucks, then gives them all random locations on the map.
-*/
-void PuckLibrary::Initialize() {
-
-    srand(time(NULL));
-
-    // This will be the number of pucks generated
-    int randSize = rand() % maxPucks + 1;
-
-    for (int i = 0; i < randSize; i++) {
-
-        // Generate a new puck with id = i and random positions between 0-480
-        Puck newPuck(i);
-
-        int xPosition = rand() % 480;
-        int yPosition = rand() % 480;
-        newPuck.x = xPosition;
-        newPuck.y = yPosition;
-
-        std::cout << "Puck " << i << " initialized at position (" << newPuck.x << ", " << newPuck.y << ")\n";
-
-        pucks.push_back(newPuck);
-    }
-    numPucks = randSize;
-
-}
-
-
-/*
     This function is intended to print the pucks and track in an easily understandable way.
 */
 void PuckLibrary::printPucks() {
@@ -224,17 +215,26 @@ void PuckLibrary::printPucks() {
 
 
 /*
-    This function starts the process of moving the pucks and making them work, and will automatically exit when they are all finished.
+    Returns the current parking spot of any given puck.
+    O(n) time complexity.
 */
-void PuckLibrary::start() {
-    // Will loop until all pucks are finished.
-    while(true) {
-        // Pucks are moved from the front to the back.
-        for(int i = 9; i >= 0; i--) {
-            // Call move, if it returns true, all pucks have finished working.
-            if(Move(track[i])) {
-                return;
-            }
+int PuckLibrary::getPuckSpot(int puckNumber) {
+    for(int i = 0; i < 10; i++) {
+        if(track[i] == puckNumber) {
+            return i;
         }
     }
+    return -1;
+}
+
+
+/*
+    Used to find if a parking spot is already occupied.
+    O(1) time complexity.
+*/
+bool PuckLibrary::isSpotTaken(int spotIndex) {
+    if(track[spotIndex] != -1) {
+        return true;
+    }
+    return false;
 }
